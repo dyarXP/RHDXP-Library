@@ -60,10 +60,7 @@ function InterfaceManager:BuildInterfaceSection(tab)
 
     local section = tab:AddSection("Interface Settings")
 
-    section:AddParagraph({
-        Title = "RHDXP Visual Style",
-        Content = "Tema Cyberpunk telah diterapkan secara otomatis."
-    })
+
 
     section:AddToggle("AcrylicToggle", {
         Title = "Acrylic (Blur)",
