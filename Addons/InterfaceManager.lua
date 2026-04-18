@@ -1,9 +1,9 @@
 local httpService = game:GetService("HttpService")
 
 local InterfaceManager = {} do
-    InterfaceManager.Folder = "FluentSettings"
+    InterfaceManager.Folder = "RHDXP_Settings"
     InterfaceManager.Settings = {
-        Theme = "Cyberpunk", -- Set default ke Cyberpunk
+        Theme = "Cyberpunk",
         Acrylic = true,
         Transparency = true,
         MenuKeybind = "LeftControl"
@@ -19,14 +19,11 @@ local InterfaceManager = {} do
     end
 
     function InterfaceManager:BuildFolderTree()
-        local paths = {self.Folder, self.Folder .. "/settings"}
-        for _, str in ipairs(paths) do
-            if not isfolder(str) then makefolder(str) end
-        end
+        if not isfolder(self.Folder) then makefolder(self.Folder) end
     end
 
     function InterfaceManager:SaveSettings()
-        writefile(self.Folder .. "/options.json", httpService:JSONEncode(InterfaceManager.Settings))
+        writefile(self.Folder .. "/options.json", httpService:JSONEncode(self.Settings))
     end
 
     function InterfaceManager:LoadSettings()
@@ -36,7 +33,7 @@ local InterfaceManager = {} do
             local success, decoded = pcall(httpService.JSONDecode, httpService, data)
             if success then
                 for i, v in next, decoded do
-                    InterfaceManager.Settings[i] = v
+                    self.Settings[i] = v
                 end
             end
         end
@@ -45,66 +42,59 @@ local InterfaceManager = {} do
     function InterfaceManager:BuildInterfaceSection(tab)
         assert(self.Library, "Must set InterfaceManager.Library")
         local Library = self.Library
-        local Settings = InterfaceManager.Settings
-
-        InterfaceManager:LoadSettings()
-
-        -- [[ INJEKSI TEMA CYBERPUNK KE LIBRARY ]]
-        Library.Themes["Cyberpunk"] = {
-            -- Warna dasar Gelap/Transparan
-            MainColor = Color3.fromRGB(15, 15, 20),
-            SecondaryColor = Color3.fromRGB(20, 20, 25),
-            -- Warna Aksen Neon (Cyan & Pink)
-            AccentColor = Color3.fromRGB(0, 255, 255), 
-            TextColor = Color3.fromRGB(255, 255, 255),
-            -- Detail UI
-            TitleColor = Color3.fromRGB(255, 0, 150), -- Neon Pink
-            OutlineColor = Color3.fromRGB(50, 50, 70)
-        }
         
-        -- Paksa gunakan tema Cyberpunk
-        Library:SetTheme("Cyberpunk")
+        -- [[ AMBIL TEMA CYBERPUNK DARI GITHUB ]]
+        local success, CyberpunkTheme = pcall(function()
+            return loadstring(game:HttpGet("https://raw.githubusercontent.com/dyarXP/RHDXP-Library/main/src/Themes/Cyberpunk.lua"))()
+        end)
+
+        if success and CyberpunkTheme then
+            Library.Themes["Cyberpunk"] = CyberpunkTheme
+            Library:SetTheme("Cyberpunk")
+        else
+            warn("❌ Gagal memuat tema Cyberpunk dari GitHub, menggunakan default Dark.")
+            Library:SetTheme("Dark")
+        end
+
+        self:LoadSettings()
 
         local section = tab:AddSection("Interface Settings")
 
-        -- Label Informasi Tema (Karena dropdown dihapus)
         section:AddParagraph({
-            Title = "Current Theme: Cyberpunk",
-            Content = "Visual khusus RHDXP Hub dengan gaya Neon & Hologram."
+            Title = "Visual Style: Cyberpunk",
+            Content = "Tema eksklusif RHDXP Hub telah diterapkan secara otomatis."
         })
     
         if Library.UseAcrylic then
             section:AddToggle("AcrylicToggle", {
                 Title = "Acrylic (Blur)",
-                Description = "Efek blur pada background (Grafik 8+)",
-                Default = Settings.Acrylic,
+                Default = self.Settings.Acrylic,
                 Callback = function(Value)
                     Library:ToggleAcrylic(Value)
-                    Settings.Acrylic = Value
-                    InterfaceManager:SaveSettings()
+                    self.Settings.Acrylic = Value
+                    self:SaveSettings()
                 end
             })
         end
     
         section:AddToggle("TransparentToggle", {
             Title = "Transparency",
-            Description = "Membuat interface tembus pandang.",
-            Default = Settings.Transparency,
+            Default = self.Settings.Transparency,
             Callback = function(Value)
                 Library:ToggleTransparency(Value)
-                Settings.Transparency = Value
-                InterfaceManager:SaveSettings()
+                self.Settings.Transparency = Value
+                self:SaveSettings()
             end
         })
     
         local MenuKeybind = section:AddKeybind("MenuKeybind", { 
             Title = "Minimize Bind", 
-            Default = Settings.MenuKeybind 
+            Default = self.Settings.MenuKeybind 
         })
         
         MenuKeybind:OnChanged(function()
-            Settings.MenuKeybind = MenuKeybind.Value
-            InterfaceManager:SaveSettings()
+            self.Settings.MenuKeybind = MenuKeybind.Value
+            self:SaveSettings()
         end)
         Library.MinimizeKeybind = MenuKeybind
     end
